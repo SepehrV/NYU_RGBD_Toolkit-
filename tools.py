@@ -25,9 +25,9 @@ class Interpolate(object):
         else:
             self.images = rgb_images
         self.labels = labels
-        self.getOpticalFlow()
-        self.merge()
-        self.genLabels()
+        #self.getOpticalFlow()
+        #self.merge()
+        #self.genLabels()
 
 
     def sort_frames(self, data):
@@ -76,6 +76,42 @@ class Interpolate(object):
             self.merged[name] = {'image':self.images[name],
                                  'flow': self.flows[name],
                                  'label': []}
+
+    def gen_dataset(self, n_images=20, both_direction=True):
+        """
+        generate a subdata from each subset where each sample is consist of
+            sequence of images with 1 label corresponding to the last frame.
+        n_images: number of images preceding the labelled image
+        both_direction: if to use images from both direction to get twice as
+            much samples
+        """
+        m = len(self.images.keys())
+        samples_X = []
+        samples_Y = []
+
+        for name in self.labels.keys():
+            c_index = self.images.keys().index(name)
+            try:
+                x = []
+                for i in range(c_index-n_images, c_index):
+                    x.append(self.images.values()[i])
+                samples_X.append(x)
+                samples_Y.append(self.labels[name])
+            except IndexError:
+                pass
+
+            if both_direction:
+                try:
+                    x = []
+                    for i in range(c_index, c_index+n_images)[::-1]:
+                        x.append(self.images.values()[i])
+                    samples_X.append(x)
+                    samples_Y.append(self.labels[name])
+                except IndexError:
+                    pass
+
+        return samples_X, samples_Y
+
 
     def genLabels(self):
         """
@@ -163,6 +199,15 @@ class Interpolate(object):
                 plt.show()
 
 
+def load_save_all(path):
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+
+
+
+
+
+
 def load_chunk(path, subset, downsample=None):
     """
     loads all rgb images from a subset of nyu rgbd dataset.
@@ -229,7 +274,9 @@ def main():
 
     labels = load_labels(path_labels, subset=subset, downsample=downsample)
     interpolate = Interpolate(load_chunk(path_nyu, subset, downsample=downsample), labels)
-    interpolate.show()
+    samples_x, samples_y = interpolate.gen_dataset()
+    pdb.set_trace()
+    #interpolate.show()
 
 if __name__ == '__main__':
     main()
